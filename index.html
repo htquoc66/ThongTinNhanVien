@@ -1,172 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Thu Thập Dữ Liệu - GitHub Pages to Google Sheet</title>
-    <style>
-        /* Thiết lập CSS cơ bản cho form dễ nhìn hơn */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f9;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"],
-        input[type="email"],
-        textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box; /* Quan trọng để padding không làm tăng chiều rộng */
-        }
-        button {
-            background-color: #5cb85c;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-        button:hover {
-            background-color: #4cae4c;
-        }
-        #status {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-            font-weight: bold;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        /* Đảm bảo tên thuộc tính 'name' trong form khớp với TIÊU ĐỀ CỘT trong Google Sheet */
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embedded Google Apps Script</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    iframe {
+      width: 100%;
+      height: 100vh;
+      border: none;
+    }
+  </style>
 </head>
 <body>
-
-    <div class="container">
-        <h1>Gửi Dữ Liệu đến Google Sheet</h1>
-        <p>Vui lòng điền thông tin vào biểu mẫu dưới đây:</p>
-
-        <form id="data-form">
-            
-            <label for="Tên">Tên Đầy Đủ:</label>
-            <input type="text" id="Tên" name="Tên" required>
-
-            <label for="Email">Địa Chỉ Email:</label>
-            <input type="email" id="Email" name="Email" required>
-            
-            <label for="Nội dung">Nội Dung Tin Nhắn:</label>
-            <textarea id="Nội dung" name="Nội dung" rows="4" required></textarea>
-
-            <button type="submit" id="submit-button">Gửi Dữ Liệu</button>
-        </form>
-
-        <div id="status"></div>
-    </div>
-
-    <script>
-        // *************************************************************************
-        // *** QUAN TRỌNG: THAY THẾ URL NÀY BẰNG URL ỨNG DỤNG WEB CỦA BẠN ĐÃ TẠO ***
-        // *************************************************************************
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyEmNPZOatABsNwWatscIgrV9iglX0wqfRWGKdI_MwD4PUMQyHBaRKWFpgPVDFF_aOL/exec"; 
-       
-
-        const form = document.getElementById('data-form');
-        const statusDiv = document.getElementById('status');
-        const submitButton = document.getElementById('submit-button');
-
-        // Hàm hiển thị trạng thái
-        function showStatus(message, isError = false) {
-            statusDiv.textContent = message;
-            statusDiv.className = isError ? 'error' : 'success';
-        }
-
-        form.addEventListener('submit', function(e) {
-            e.preventDefault(); // Ngăn form gửi theo cách truyền thống (tải lại trang)
-
-            // Đặt trạng thái đang gửi và vô hiệu hóa nút
-            showStatus('Đang gửi dữ liệu...', false);
-            submitButton.disabled = true;
-
-            // 1. Thu thập dữ liệu form
-            const formData = new FormData(form);
-            const data = {};
-            // Lặp qua dữ liệu và tạo đối tượng JSON, KEY phải khớp với tên cột trong Sheet
-            formData.forEach((value, key) => {
-                data[key] = value;
-            });
-
-            // 2. Gửi dữ liệu bằng Fetch API
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                // Chế độ 'cors' là cần thiết để gửi yêu cầu đến Apps Script
-                mode: 'cors', 
-                cache: 'no-cache',
-                headers: {
-                    // Cần thiết để Apps Script parse JSON chính xác
-                    'Content-Type': 'application/json' 
-                },
-                // Chuyển đối tượng dữ liệu thành chuỗi JSON
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Lỗi HTTP: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                if (result && result.result === "success") {
-                    console.log('Success:', result);
-                    showStatus('✅ Gửi thành công! Dữ liệu đã lưu vào Google Sheet.', false);
-                    form.reset(); // Xóa nội dung form
-                } else {
-                    // Xử lý lỗi từ Apps Script (nếu script có lỗi)
-                    showStatus('❌ Lỗi không xác định từ máy chủ Google Sheet.', true);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showStatus(`❌ Lỗi khi gửi dữ liệu: ${error.message}. Vui lòng kiểm tra Apps Script URL.`, true);
-            })
-            .finally(() => {
-                // Kích hoạt lại nút gửi sau khi quá trình hoàn tất (thành công hoặc thất bại)
-                submitButton.disabled = false;
-            });
-        });
-    </script>
-
+  <iframe src="https://script.google.com/macros/s/AKfycbz3oR5scMFH3NYcUKyBHzGcmbJF_jwnCf5_evtjj9rkTpxEDIEiP-UftWV0RprFdGe7WA/exec"></iframe>
 </body>
-
-
 </html>
